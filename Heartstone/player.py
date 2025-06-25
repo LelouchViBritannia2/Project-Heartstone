@@ -19,42 +19,42 @@ class Player:
             self.draw_card()
     
     def draw_card(self):
-        """Draw a card from deck to hand"""
-        if self.deck and len(self.hand) < 10:
+        """Получение карты из колоды в руку"""
+        if self.deck and len(self.hand) < 7:
             card = self.deck.pop(0)
             self.hand.append(card)
             return card
         return None
     
     def play_card(self, card_index, target=None):
-        """Play a card from hand"""
+        """Сыграть карту из руки"""
         if card_index >= len(self.hand):
             return False
             
         card = self.hand[card_index]
         
-        # Check if player has enough mana
+        #Проверка на наличие достаточного кол-ва маны
         if card.cost > self.mana:
             return False
         
-        # Check board space for minions
+        #Проверка на свободное место
         if card.card_type == CardType.MINION and len(self.board) >= 7:
             return False  # Board is full
         
-        # Spend mana
+        #Трата маны
         self.mana -= card.cost
         
-        # Remove card from hand
+        #Убирание карты из руки
         self.hand.pop(card_index)
         
-        # Handle different card types
+        #свойства разных тип карт
         if card.card_type == CardType.MINION:
-            # Place minion on board
-            card.summoning_sickness = True  # Can't attack this turn
+            #Размещение существа
+            card.summoning_sickness = True  #не может атаковать в этот ход
             self.board.append(card)
             return True
         elif card.card_type == CardType.SPELL:
-            # Cast spell using unified spell system
+            #Использование заклинаний
             if target:
                 self.cast_spell(card, target)
             return True
@@ -62,60 +62,57 @@ class Player:
         return False
     
     def start_turn(self):
-        """Start a new turn"""
-        # Increase max mana (up to 10)
+        """начало хода"""
         if self.max_mana < 10:
             self.max_mana += 1
         
-        # Restore mana
         self.mana = self.max_mana
         
-        # Draw a card
+        #взятие карты
         self.draw_card()
         
-        # Reset minions and remove dead ones
+        #чистка мёртвых существа
         self.board = [minion for minion in self.board if minion.health > 0]
         for minion in self.board:
             minion.reset_turn()
     
     def end_turn(self):
-        """End the current turn"""
+        """конец хода"""
         pass
     
     def take_damage(self, damage):
-        """Take damage to health"""
+        """получение урона"""
         self.health -= damage
         return self.health <= 0
     
     def heal(self, amount):
-        """Heal health"""
+        """восстановление здоровья"""
         self.health = min(self.max_health, self.health + amount)
     
     def cast_spell(self, spell_card, target):
-        """Cast a spell based on its spell_damage value and name"""
+        """Свойства заклинаний"""
         spell_damage = spell_card.spell_damage
         spell_name = spell_card.name
         
-        # Positive spell_damage = damage spells
         if spell_damage > 0:
             if hasattr(target, 'take_damage'):
                 target.take_damage(spell_damage)
         
-        # Negative spell_damage = healing spells
         elif spell_damage < 0:
             heal_amount = abs(spell_damage)
             if hasattr(target, 'heal'):
                 target.heal(heal_amount)
         
-        # Zero spell_damage = buff/utility spells (check by name)
         elif spell_damage == 0:
-            # Attack buff spells
             if "Арата" in spell_name and hasattr(target, 'attack'):
                 target.attack += 3
                 target.health +=2
+            if "Голод" in spell_name and hasattr(target, 'attack'):
+                target.attack += 5
+                target.health -=2
     
     def draw_hand(self, surface, y_position, selected_index=-1):
-        """Draw the player's hand"""
+        """Отрисовка руки"""
         hand_width = len(self.hand) * 130
         start_x = (surface.get_width() - hand_width) // 2
         
@@ -125,7 +122,7 @@ class Player:
             card.draw(surface, x, y_position, selected)
     
     def draw_board(self, surface, y_position):
-        """Draw the player's board"""
+        """отрисовка своего стола"""
         board_width = len(self.board) * 130
         start_x = (surface.get_width() - board_width) // 2
         
@@ -134,95 +131,103 @@ class Player:
             card.draw(surface, x, y_position)
     
     def attack_with_minion(self, minion_index, target):
-        """Attack with a minion"""
+        """Атака существом"""
         if minion_index >= len(self.board):
             return False
         
         minion = self.board[minion_index]
         if minion.attack_target(target):
-            # Remove dead minions after combat
+            #чистка существа с доски
             self.board = [m for m in self.board if m.health > 0]
             return True
         return False
     
     def remove_dead_minions(self):
-        """Remove minions with 0 or less health"""
+        """""чистка существа с доски"""
         self.board = [minion for minion in self.board if minion.health > 0]
     
     def draw_health_bar(self, surface, x, y, width=150, height=20):
-        """Draw a health bar for the player"""
-        # Calculate health percentage
+        """Отрисовка здоровья игрока"""
+        #счёт здоровья в %
         health_percentage = self.health / self.max_health if self.max_health > 0 else 0
         
-        # Draw background (empty health bar)
+        #пустые очки здоровья
         background_rect = pygame.Rect(x, y, width, height)
         pygame.draw.rect(surface, (100, 100, 100), background_rect)
         
-        # Draw health fill
+        #восстановление здоровья
         if health_percentage > 0:
             fill_width = int(width * health_percentage)
             fill_rect = pygame.Rect(x, y, fill_width, height)
             
-            # Color based on health percentage
+            #цвета для разного кол-ва здоровья
             if health_percentage > 0.6:
-                color = (0, 255, 0)  # Green
+                color = (0, 255, 0) 
             elif health_percentage > 0.3:
-                color = (255, 255, 0)  # Yellow
+                color = (255, 255, 0)
             else:
-                color = (255, 0, 0)  # Red
+                color = (255, 0, 0)
             
             pygame.draw.rect(surface, color, fill_rect)
         
-        # Draw health text on top of bar
+        #Текст на шкале здоровья
         font = pygame.font.Font(None, 18)
-        health_text = font.render(f"{self.health}/{self.max_health}", True, (255, 255, 255))
+        health_text = font.render(f"{self.health}/{self.max_health}", True, (0, 0, 0))
         text_rect = health_text.get_rect(center=(x + width // 2, y + height // 2))
         surface.blit(health_text, text_rect)
         
-        # Draw black border on top
+        #отрисовка
         pygame.draw.rect(surface, (0, 0, 0), background_rect, 2)
 
     def draw_mana_bar(self, surface, x, y, width=150, height=20):
-        """Draw a mana bar for the player"""
-        # Calculate mana percentage
+        """Отрисовка мана-бара"""
+        #мана %
         mana_percentage = self.mana / self.max_mana if self.max_mana > 0 else 0
         
-        # Draw background (empty mana bar)
+        #бэкграунд
         background_rect = pygame.Rect(x, y, width, height)
         pygame.draw.rect(surface, (100, 100, 100), background_rect)
         
-        # Draw mana fill
+        #восстановление маны
         if mana_percentage > 0:
             fill_width = int(width * mana_percentage)
             fill_rect = pygame.Rect(x, y, fill_width, height)
             
-            # Blue color for mana
-            color = (0, 100, 255)  # Blue
+            #цвет маны
+            color = (100, 150, 255)
             pygame.draw.rect(surface, color, fill_rect)
         
-        # Draw mana text on top of bar
+        #мана текс
         font = pygame.font.Font(None, 18)
-        mana_text = font.render(f"{self.mana}/{self.max_mana}", True, (255, 255, 255))
+        mana_text = font.render(f"{self.mana}/{self.max_mana}", True, (0, 0, 0))
         text_rect = mana_text.get_rect(center=(x + width // 2, y + height // 2))
         surface.blit(mana_text, text_rect)
         
-        # Draw black border on top
+        #отрисовка
         pygame.draw.rect(surface, (0, 0, 0), background_rect, 2)
 
     def draw_info(self, surface, x, y):
-        """Draw player info (health, mana)"""
+        """инфа о игроке"""
         font = pygame.font.Font(None, 24)
         
-        # Draw name
+        #имя
         name_text = font.render(self.name, True, (0, 0, 0))
         surface.blit(name_text, (x, y))
         
-        # Draw health bar
+        #хп бар
         self.draw_health_bar(surface, x, y + 25, 150, 20)
         
-        # Draw mana bar
+        #мана бар
         self.draw_mana_bar(surface, x, y + 50, 150, 20)
         
-        # Draw deck size
-        deck_text = font.render(f"Колода: {len(self.deck)}", True, (0, 0, 0))
+        #кол-во карт на доске
+        deck_text = font.render(f"Колода: {len(self.deck)}", True, (255, 255, 255))
+        deck_text_width = deck_text.get_width()
+        deck_text_height = deck_text.get_height()
+        
+        #прозрычный бэкграунд для доски
+        deck_bg = pygame.Surface((deck_text_width + 8, deck_text_height + 4), pygame.SRCALPHA)
+        deck_bg.fill((0, 0, 0, 180))
+        surface.blit(deck_bg, (x - 2, y + 78))
+        
         surface.blit(deck_text, (x, y + 80))
