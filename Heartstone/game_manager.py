@@ -919,7 +919,7 @@ class GameManager:
                 #описание
                 if display_card.description:
                     current_y += 15
-                    desc_title = self.small_font.render("Описанме:", True, (255, 255, 255))
+                    desc_title = self.small_font.render("Описание:", True, (255, 255, 255))
                     self.screen.blit(desc_title, (desc_x, current_y))
                     current_y += 25
                     
@@ -1069,7 +1069,7 @@ class GameManager:
         """нажатие на геймовер"""
         selected = self.game_over_options[self.game_over_selected_option]
         
-        if selected == "Начать заного":
+        if selected == "Играть ещё раз":
             self.restart_game()
         elif selected == "Выйти":
             pygame.quit()
